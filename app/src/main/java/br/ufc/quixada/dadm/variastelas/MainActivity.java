@@ -1,6 +1,7 @@
 package br.ufc.quixada.dadm.variastelas;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -12,7 +13,9 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ExpandableListView;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -24,8 +27,12 @@ public class MainActivity extends AppCompatActivity {
 
     int selected;
     ArrayList<Contato> listaContatos;
-    ArrayAdapter adapter;
-    ListView listViewContatos;
+    //ArrayAdapter adapter;
+    ExpandableListAdapter adapter;
+    //ListView listViewContatos;
+    ExpandableListView listViewContatos;
+
+    private static final String CONTACTS_FILE = "br.ufc.quixada.dadm.variastelas.contacts_file";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,23 +43,84 @@ public class MainActivity extends AppCompatActivity {
 
         listaContatos = new ArrayList<Contato>();
 
-        adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, listaContatos );
+        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
 
-        listViewContatos = ( ListView )findViewById( R.id.listViewContatos );
+        String restoredText = prefs.getString( CONTACTS_FILE, null );
+        if (restoredText != null){
+            Log.d( "Main", restoredText );
+
+            String[] contatos = restoredText.split( "_" );
+
+            for( String cont : contatos ){
+
+                Contato c = new Contato();
+
+                String[] info = cont.split( "-" );
+
+                c.setId( Integer.parseInt( info[ 0 ] ) );
+                c.setNome( info[ 1 ] );
+                c.setTelefone( info[ 2 ] );
+                c.setEndereco( info[ 3 ] );
+
+                listaContatos.add( c );
+
+            }
+        }
+
+
+        //adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, listaContatos );
+
+        adapter = new ExpandableListAdapter( this, listaContatos );
+
+
+        listViewContatos = ( ExpandableListView ) findViewById( R.id.expandableListView );
         listViewContatos.setAdapter( adapter );
-        listViewContatos.setSelector( android.R.color.holo_blue_light );
+       listViewContatos.setSelector( android.R.color.holo_blue_light );
 
-        listViewContatos.setOnItemClickListener( new AdapterView.OnItemClickListener()
+//        listViewContatos.setOnItemClickListener( new AdapterView.OnItemClickListener()
+//        {
+//            @Override
+//            public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3)
+//            {
+//                Toast.makeText(MainActivity.this, "" + listaContatos.get( position ).toString(), Toast.LENGTH_SHORT).show();
+//                selected = position;
+//            }
+//        } );
+
+        listViewContatos.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener()
         {
             @Override
-            public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3)
+            public boolean onGroupClick(ExpandableListView parent, View v,
+                                        int groupPosition, long id)
             {
-                Toast.makeText(MainActivity.this, "" + listaContatos.get( position ).toString(), Toast.LENGTH_SHORT).show();
-                selected = position;
+                selected = groupPosition;
+                return false;
             }
-        } );
+        });
 
 
+    }
+
+    @Override
+    protected void onPause() {
+
+        super.onPause();
+
+        SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE).edit();
+        editor.putString( CONTACTS_FILE, exportContactList() );
+        editor.apply();
+
+    }
+
+    private String exportContactList(){
+
+        String export = "";
+
+        for( Contato contato: listaContatos ){
+            export += contato.getFullContact() + "_";
+        }
+
+        return export;
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -86,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
 
         if( listaContatos.size() > 0 ){
             listaContatos.remove( selected );
-            adapter.notifyDataSetChanged();;
+            adapter.notifyDataSetChanged();
         } else {
             selected = -1;
         }
@@ -126,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
           Contato contato = new Contato( nome, telefone, endereco );
 
           listaContatos.add( contato );
-          adapter.notifyDataSetChanged();
+          //adapter.notifyDataSetChanged();
 
       } else if( requestCode == Constants.REQUEST_EDIT && resultCode == Constants.RESULT_ADD ){
 
@@ -144,7 +212,7 @@ public class MainActivity extends AppCompatActivity {
               }
           }
 
-          adapter.notifyDataSetChanged();
+          //adapter.notifyDataSetChanged();
 
       } //Retorno da tela de contatos com um conteudo para ser adicionado
         //Na segunda tela, o usuario clicou no botão ADD
