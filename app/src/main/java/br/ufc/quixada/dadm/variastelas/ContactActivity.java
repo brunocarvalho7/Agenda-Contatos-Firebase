@@ -17,7 +17,7 @@ public class ContactActivity extends AppCompatActivity {
     EditText edtEnd;
 
     boolean edit;
-    int idContatoEditar;
+    String idContatoEditar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,7 +42,7 @@ public class ContactActivity extends AppCompatActivity {
             String nome = ( String )getIntent().getExtras().get( "nome" );
             String telefone = ( String )getIntent().getExtras().get( "telefone" );
             String endereco = ( String )getIntent().getExtras().get( "endereco" );
-            idContatoEditar = (int)getIntent().getExtras().get( "id" );
+            idContatoEditar = ( String ) getIntent().getExtras().get( "id" );
 
             edtNome.setText( nome );
             edtTel.setText( telefone );

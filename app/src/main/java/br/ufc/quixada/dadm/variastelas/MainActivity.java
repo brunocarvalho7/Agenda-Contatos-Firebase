@@ -18,74 +18,42 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.ArrayList;
+import com.google.firebase.database.FirebaseDatabase;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import br.ufc.quixada.dadm.variastelas.dao.ContactDao;
+import br.ufc.quixada.dadm.variastelas.dao.impl.ContactDaoImpl;
 import br.ufc.quixada.dadm.variastelas.transactions.Constants;
 import br.ufc.quixada.dadm.variastelas.transactions.Contato;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ContactDaoImpl.DataStatus{
+
+    private ContactDao contactDao;
 
     int selected;
-    ArrayList<Contato> listaContatos;
-    //ArrayAdapter adapter;
+    List<Contato> listaContatos;
     ExpandableListAdapter adapter;
-    //ListView listViewContatos;
     ExpandableListView listViewContatos;
-
-    private static final String CONTACTS_FILE = "br.ufc.quixada.dadm.variastelas.contacts_file";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        FirebaseDatabase.getInstance().setPersistenceEnabled(true);
+
+        contactDao = new ContactDaoImpl(this);
 
         selected = -1;
-
-        listaContatos = new ArrayList<Contato>();
-
-        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
-
-        String restoredText = prefs.getString( CONTACTS_FILE, null );
-        if (restoredText != null){
-            Log.d( "Main", restoredText );
-
-            String[] contatos = restoredText.split( "_" );
-
-            for( String cont : contatos ){
-
-                Contato c = new Contato();
-
-                String[] info = cont.split( "-" );
-
-                c.setId( Integer.parseInt( info[ 0 ] ) );
-                c.setNome( info[ 1 ] );
-                c.setTelefone( info[ 2 ] );
-                c.setEndereco( info[ 3 ] );
-
-                listaContatos.add( c );
-
-            }
-        }
-
-
-        //adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, listaContatos );
+        listaContatos = contactDao.findAll();
 
         adapter = new ExpandableListAdapter( this, listaContatos );
 
-
         listViewContatos = ( ExpandableListView ) findViewById( R.id.expandableListView );
         listViewContatos.setAdapter( adapter );
-       listViewContatos.setSelector( android.R.color.holo_blue_light );
-
-//        listViewContatos.setOnItemClickListener( new AdapterView.OnItemClickListener()
-//        {
-//            @Override
-//            public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3)
-//            {
-//                Toast.makeText(MainActivity.this, "" + listaContatos.get( position ).toString(), Toast.LENGTH_SHORT).show();
-//                selected = position;
-//            }
-//        } );
+        listViewContatos.setSelector( android.R.color.holo_blue_light );
 
         listViewContatos.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener()
         {
@@ -97,30 +65,6 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
-
-
-    }
-
-    @Override
-    protected void onPause() {
-
-        super.onPause();
-
-        SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE).edit();
-        editor.putString( CONTACTS_FILE, exportContactList() );
-        editor.apply();
-
-    }
-
-    private String exportContactList(){
-
-        String export = "";
-
-        for( Contato contato: listaContatos ){
-            export += contato.getFullContact() + "_";
-        }
-
-        return export;
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -130,7 +74,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public boolean onOptionsItemSelected( MenuItem item ) {
-
         switch(item.getItemId())
         {
             case R.id.add:
@@ -151,14 +94,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void apagarItemLista(){
-
-        if( listaContatos.size() > 0 ){
-            listaContatos.remove( selected );
-            adapter.notifyDataSetChanged();
+        if( listaContatos.size() > 0 && selected > -1){
+            Contato c = (Contato) listViewContatos.getAdapter().getItem(selected);
+            contactDao.remove(c);
         } else {
             selected = -1;
         }
-
     }
 
     public void clicarAdicionar(){
@@ -167,17 +108,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void clicarEditar(){
+        if(selected > -1){
+            Intent intent = new Intent( this, ContactActivity.class );
 
-        Intent intent = new Intent( this, ContactActivity.class );
+            Contato contato = listaContatos.get( selected );
 
-        Contato contato = listaContatos.get( selected );
+            intent.putExtra( "id", contato.getId() );
+            intent.putExtra( "nome", contato.getNome() );
+            intent.putExtra( "telefone", contato.getTelefone() );
+            intent.putExtra( "endereco", contato.getEndereco() );
 
-        intent.putExtra( "id", contato.getId() );
-        intent.putExtra( "nome", contato.getNome() );
-        intent.putExtra( "telefone", contato.getTelefone() );
-        intent.putExtra( "endereco", contato.getEndereco() );
-
-        startActivityForResult( intent, Constants.REQUEST_EDIT );
+            startActivityForResult( intent, Constants.REQUEST_EDIT );
+        }
     }
 
 
@@ -193,26 +135,17 @@ public class MainActivity extends AppCompatActivity {
 
           Contato contato = new Contato( nome, telefone, endereco );
 
-          listaContatos.add( contato );
-          //adapter.notifyDataSetChanged();
+          contactDao.save(contato);
 
       } else if( requestCode == Constants.REQUEST_EDIT && resultCode == Constants.RESULT_ADD ){
 
           String nome = ( String )data.getExtras().get( "nome" );
           String telefone = ( String )data.getExtras().get( "telefone" );
           String endereco = ( String )data.getExtras().get( "endereco" );
-          int idEditar = (int)data.getExtras().get( "id" );
+          String idEditar = ( String) data.getExtras().get( "id" );
 
-          for( Contato contato: listaContatos ){
-
-              if( contato.getId() == idEditar ){
-                  contato.setNome( nome );
-                  contato.setEndereco( endereco );
-                  contato.setTelefone( telefone );
-              }
-          }
-
-          //adapter.notifyDataSetChanged();
+          Contato c = new Contato( idEditar, nome, telefone, endereco );
+          contactDao.update(c);
 
       } //Retorno da tela de contatos com um conteudo para ser adicionado
         //Na segunda tela, o usuario clicou no botão ADD
@@ -220,14 +153,11 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText( this,"Cancelado",
                     Toast.LENGTH_SHORT).show();
         }
-
     }
 
-
-
-
-
-
-
-
+    @Override
+    public void DataIsLoaded(List<String> ids) {
+        adapter.setIds(ids);
+        adapter.notifyDataSetChanged();
+    }
 }

@@ -1,10 +1,10 @@
 package br.ufc.quixada.dadm.variastelas.transactions;
 
+import android.support.annotation.Nullable;
+
 public class Contato {
 
-    private static int contadorId = 0;
-
-    private int id;
+    private String id;
     private String nome;
     private String telefone;
     private String endereco;
@@ -13,17 +13,20 @@ public class Contato {
 
     }
 
-    public Contato(String nome, String telefone, String endereco) {
-
-        this.id = contadorId++;
-
+    public Contato( String nome, String telefone, String endereco) {
         this.nome = nome;
         this.telefone = telefone;
         this.endereco = endereco;
-
     }
 
-    public int getId() {
+    public Contato( String id, String nome, String telefone, String endereco) {
+        this.id = id;
+        this.nome = nome;
+        this.telefone = telefone;
+        this.endereco = endereco;
+    }
+
+    public String getId() {
         return id;
     }
 
@@ -56,14 +59,12 @@ public class Contato {
         return nome;
     }
 
-    public void setId(int id) {
+    public void setId(String id) {
         this.id = id;
     }
 
-    public String getFullContact(){
-        return id + "-" +
-                nome + "-" +
-                telefone + "-" +
-                endereco;
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        return this.id == ((Contato) obj).getId();
     }
 }

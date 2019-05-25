@@ -17,12 +17,12 @@ public class ExpandableListAdapter extends BaseExpandableListAdapter {
 
     private Context context;
     private List<Contato> agenda;
+    private List<String> ids;
 
 
     public ExpandableListAdapter(Context context, List<Contato> agenda ) {
         this.context = context;
         this.agenda = agenda;
-
     }
 
     public View getGroupView(int groupPosition, boolean isExpanded,
@@ -54,12 +54,12 @@ public class ExpandableListAdapter extends BaseExpandableListAdapter {
     }
 
     public Object getGroup(int groupPosition) {
-        return agenda.get( groupPosition );
+        return getObjectFromIndexId(groupPosition);
     }
 
     @Override
     public Object getChild( int groupPosition, int childPosition ) {
-        return agenda.get( groupPosition );
+        return getObjectFromIndexId(groupPosition);
     }
 
     @Override
@@ -85,12 +85,12 @@ public class ExpandableListAdapter extends BaseExpandableListAdapter {
 
     @Override
     public long getGroupId( int groupPosition ) {
-        return agenda.get( groupPosition ).getId();
+        return groupPosition;
     }
 
     @Override
     public long getChildId(int groupPosition, int childPosition) {
-        return agenda.get( groupPosition ).getId();
+        return groupPosition;
     }
 
     public int getGroupCount() {
@@ -112,5 +112,17 @@ public class ExpandableListAdapter extends BaseExpandableListAdapter {
         return false;
     }
 
+    public Object getObjectFromIndexId(int indexId){
+        String id = this.ids.get(indexId);
 
+        for(Contato c : agenda){
+            if(c.getId().equals(id))
+                return c;
+        }
+        return null;
+    }
+
+    public void setIds(List<String> ids) {
+        this.ids = ids;
+    }
 }
